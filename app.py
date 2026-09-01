@@ -8,63 +8,76 @@ import notifier
 app = Flask(__name__)
 
 # Initialize database
-database.init_db()
+try:
+    database.init_db()
+except Exception as e:
+    print(f"Database init warning: {e}")
 
 # Scheduler initialization
-scheduler = BackgroundScheduler(daemon=True)
+scheduler = BackgroundScheduler(daemon=True, timezone="UTC")
 
 def check_all_prices():
     """Background task to check prices of all active products."""
     print("[Background Scheduler] Running automated price checks...")
-    products = database.get_all_products()
-    settings = database.get_settings()
-    
-    for prod in products:
-        if prod['status'] != 'active':
-            continue
-            
-        print(f"Scraping product ID {prod['id']}: {prod['url']}")
-        res = scraper.get_product_details(prod['url'])
+    try:
+        products = database.get_all_products()
+        settings = database.get_settings()
         
-        if res.get('success') and res.get('price'):
-            new_price = res['price']
-            database.update_product_price(prod['id'], new_price, title=res.get('title'), image_url=res.get('image_url'))
-            
-            # Check if price dropped below target
-            target_price = prod['target_price']
-            if new_price <= target_price:
-                print(f"PRICE ALERT for {prod['title']}! Current: {new_price}, Target: {target_price}")
+        for prod in products:
+            if prod['status'] != 'active':
+                continue
                 
-                # Send Telegram Alert
-                bot_token = settings.get('telegram_bot_token')
-                chat_id = settings.get('telegram_chat_id')
-                if bot_token and chat_id:
-                    notifier.send_telegram_alert(
-                        bot_token, chat_id, prod['title'], new_price, target_price, prod['url']
-                    )
+            print(f"Scraping product ID {prod['id']}: {prod['url']}")
+            res = scraper.get_product_details(prod['url'])
+            
+            if res.get('success') and res.get('price'):
+                new_price = res['price']
+                database.update_product_price(prod['id'], new_price, title=res.get('title'), image_url=res.get('image_url'))
+                
+                # Check if price dropped below target
+                target_price = prod['target_price']
+                if new_price <= target_price:
+                    print(f"PRICE ALERT for {prod['title']}! Current: {new_price}, Target: {target_price}")
                     
-                # Send Email Alert
-                if settings.get('email_alerts_enabled') == 'true':
-                    notifier.send_email_alert(
-                        settings.get('smtp_server'),
-                        settings.get('smtp_port'),
-                        settings.get('smtp_email'),
-                        settings.get('smtp_password'),
-                        settings.get('recipient_email'),
-                        prod['title'], new_price, target_price, prod['url']
-                    )
-        else:
-            print(f"Failed to scrape product ID {prod['id']}: {res.get('error')}")
+                    # Send Telegram Alert
+                    bot_token = settings.get('telegram_bot_token')
+                    chat_id = settings.get('telegram_chat_id')
+                    if bot_token and chat_id:
+                        notifier.send_telegram_alert(
+                            bot_token, chat_id, prod['title'], new_price, target_price, prod['url']
+                        )
+                        
+                    # Send Email Alert
+                    if settings.get('email_alerts_enabled') == 'true':
+                        notifier.send_email_alert(
+                            settings.get('smtp_server'),
+                            settings.get('smtp_port'),
+                            settings.get('smtp_email'),
+                            settings.get('smtp_password'),
+                            settings.get('recipient_email'),
+                            prod['title'], new_price, target_price, prod['url']
+                        )
+            else:
+                print(f"Failed to scrape product ID {prod['id']}: {res.get('error')}")
+    except Exception as err:
+        print(f"Error in background check_all_prices: {err}")
 
 # Configure scheduler job
-settings = database.get_settings()
-interval_hours = int(settings.get('check_interval_hours', 4))
-scheduler.add_job(check_all_prices, 'interval', hours=interval_hours, id='price_check_job', replace_existing=True)
-scheduler.start()
+try:
+    settings = database.get_settings()
+    interval_hours = int(settings.get('check_interval_hours', 4))
+    scheduler.add_job(check_all_prices, 'interval', hours=interval_hours, id='price_check_job', replace_existing=True)
+    scheduler.start()
+except Exception as sched_err:
+    print(f"Scheduler startup warning: {sched_err}")
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        database.init_db()
+        return render_template('index.html')
+    except Exception as e:
+        return f"<h3>Application Initializing...</h3><p>{str(e)}</p>", 500
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
