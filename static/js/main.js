@@ -238,6 +238,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Add Product Form Handler
+  addForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = document.getElementById('productUrl').value.trim();
+    const targetPrice = document.getElementById('targetPrice').value.trim();
+
+    if (!url || !targetPrice) {
+      showToast('Please enter both Product URL and Target Price', 'error');
+      return;
+    }
+
+    addBtnSpinner.classList.remove('hidden');
+    addBtnText.textContent = 'Scraping Page...';
+    btnAddSubmit.disabled = true;
+
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, target_price: targetPrice })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast('Product added successfully!', 'success');
+        addForm.reset();
+        fetchProducts();
+      } else {
+        showToast(data.error || 'Failed to add product', 'error');
+      }
+    } catch (err) {
+      showToast('Network error while adding product', 'error');
+    } finally {
+      addBtnSpinner.classList.add('hidden');
+      addBtnText.textContent = 'Start Tracking';
+      btnAddSubmit.disabled = false;
+    }
+  });
+
+  // Re-check Single Product
+  async function checkSingleProduct(id, btnElement) {
+    const origText = btnElement.textContent;
+    btnElement.textContent = '⏳ Checking...';
+    btnElement.disabled = true;
+
+    try {
+      const res = await fetch(`/api/products/${id}/check`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Updated price: ₹${data.product.current_price}`, 'success');
+        fetchProducts();
+      } else {
+        showToast(data.error || 'Check failed', 'error');
+      }
+    } catch (err) {
+      showToast('Error re-checking price', 'error');
+    } finally {
+      btnElement.textContent = origText;
+      btnElement.disabled = false;
+    }
+  }
+
   // Re-check All Products
   btnCheckAll.addEventListener('click', async () => {
     btnCheckAll.disabled = true;
