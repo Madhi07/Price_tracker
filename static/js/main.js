@@ -103,7 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="price-row">
           <div>
             <div class="current-price ${isDrop ? 'price-drop' : ''}">${formattedCurrent}</div>
-            <div class="target-price">Target: ${formattedTarget}</div>
+            <div class="target-price">
+              Target: ${formattedTarget}
+              <button class="btn-edit-target" data-id="${product.id}" data-target="${product.target_price}" title="Edit Target Price">✏️</button>
+            </div>
           </div>
           ${isDrop ? '<span class="status-drop">🔥 PRICE DROP!</span>' : ''}
         </div>
@@ -133,6 +136,39 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-history').forEach(btn => {
       btn.addEventListener('click', (e) => openHistoryChart(e.target.dataset.id));
     });
+
+    document.querySelectorAll('.btn-edit-target').forEach(btn => {
+      btn.addEventListener('click', (e) => editTargetPrice(e.target.dataset.id, e.target.dataset.target));
+    });
+  }
+
+  // Edit Target Price
+  async function editTargetPrice(id, currentTarget) {
+    const input = prompt('Enter new Target Price (₹):', currentTarget);
+    if (input === null) return;
+    
+    const newTarget = parseFloat(input);
+    if (isNaN(newTarget) || newTarget <= 0) {
+      showToast('Please enter a valid price greater than 0', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${id}/target`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_price: newTarget })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Target price updated!', 'success');
+        fetchProducts();
+      } else {
+        showToast(data.error || 'Failed to update target price', 'error');
+      }
+    } catch (err) {
+      showToast('Error updating target price', 'error');
+    }
   }
 
   // Add Product Form Handler

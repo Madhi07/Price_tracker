@@ -145,6 +145,17 @@ def update_product_price(product_id, current_price, title=None, image_url=None):
     conn.commit()
     conn.close()
 
+def update_product_target_price(product_id, target_price):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE products
+        SET target_price = ?
+        WHERE id = ?
+    ''', (target_price, product_id))
+    conn.commit()
+    conn.close()
+
 def delete_product(product_id):
     conn = get_db()
     cursor = conn.cursor()

@@ -154,6 +154,25 @@ def check_product(prod_id):
     else:
         return jsonify({'success': False, 'error': res.get('error', 'Scrape failed')}), 400
 
+@app.route('/api/products/<int:prod_id>/target', methods=['PUT'])
+def update_target_price(prod_id):
+    data = request.json or {}
+    new_target = data.get('target_price')
+    try:
+        new_target = float(new_target)
+        if new_target <= 0:
+            return jsonify({'success': False, 'error': 'Target price must be greater than 0.'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'Invalid target price.'}), 400
+
+    prod = database.get_product(prod_id)
+    if not prod:
+        return jsonify({'success': False, 'error': 'Product not found.'}), 404
+
+    database.update_product_target_price(prod_id, new_target)
+    updated_prod = database.get_product(prod_id)
+    return jsonify({'success': True, 'product': updated_prod, 'message': 'Target price updated successfully.'})
+
 @app.route('/api/products/check-all', methods=['POST'])
 def check_all_manual():
     check_all_prices()

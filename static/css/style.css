@@ -403,6 +403,25 @@ body {
 .target-price {
   font-size: 13px;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.btn-edit-target {
+  background: none;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 2px 4px;
+}
+
+.btn-edit-target:hover {
+  opacity: 1;
+  transform: scale(1.2);
 }
 
 .card-actions {
