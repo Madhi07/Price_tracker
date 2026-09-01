@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', (e) => deleteProduct(e.target.dataset.id));
+      btn.addEventListener('click', (e) => openDeleteModal(e.target.dataset.id));
     });
 
     document.querySelectorAll('.btn-history').forEach(btn => {
@@ -138,23 +138,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.btn-edit-target').forEach(btn => {
-      btn.addEventListener('click', (e) => editTargetPrice(e.target.dataset.id, e.target.dataset.target));
+      btn.addEventListener('click', (e) => openEditTargetModal(e.target.dataset.id, e.target.dataset.target));
     });
   }
 
-  // Edit Target Price
-  async function editTargetPrice(id, currentTarget) {
-    const input = prompt('Enter new Target Price (₹):', currentTarget);
-    if (input === null) return;
-    
-    const newTarget = parseFloat(input);
+  // State for Modals
+  let activeEditProductId = null;
+  let activeDeleteProductId = null;
+
+  // Edit Target Modal Elements
+  const editTargetModal = document.getElementById('editTargetModal');
+  const editTargetForm = document.getElementById('editTargetForm');
+  const editTargetProductTitle = document.getElementById('editTargetProductTitle');
+  const inputNewTarget = document.getElementById('inputNewTarget');
+  const btnCloseEditTarget = document.getElementById('btnCloseEditTarget');
+  const btnCancelEditTarget = document.getElementById('btnCancelEditTarget');
+
+  // Confirm Delete Modal Elements
+  const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+  const deleteProductPreview = document.getElementById('deleteProductPreview');
+  const btnCloseDeleteModal = document.getElementById('btnCloseDeleteModal');
+  const btnCancelDelete = document.getElementById('btnCancelDelete');
+  const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+
+  // Open Edit Target Modal
+  function openEditTargetModal(id, currentTarget) {
+    activeEditProductId = id;
+    const prod = productsData.find(p => p.id == id);
+    editTargetProductTitle.textContent = prod ? prod.title : 'Product';
+    inputNewTarget.value = currentTarget;
+    editTargetModal.classList.add('active');
+  }
+
+  function closeEditTargetModal() {
+    editTargetModal.classList.remove('active');
+    activeEditProductId = null;
+  }
+
+  btnCloseEditTarget.addEventListener('click', closeEditTargetModal);
+  btnCancelEditTarget.addEventListener('click', closeEditTargetModal);
+
+  editTargetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!activeEditProductId) return;
+
+    const newTarget = parseFloat(inputNewTarget.value);
     if (isNaN(newTarget) || newTarget <= 0) {
       showToast('Please enter a valid price greater than 0', 'error');
       return;
     }
 
     try {
-      const res = await fetch(`/api/products/${id}/target`, {
+      const res = await fetch(`/api/products/${activeEditProductId}/target`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_price: newTarget })
@@ -162,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success) {
         showToast('Target price updated!', 'success');
+        closeEditTargetModal();
         fetchProducts();
       } else {
         showToast(data.error || 'Failed to update target price', 'error');
@@ -169,79 +205,38 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       showToast('Error updating target price', 'error');
     }
-  }
-
-  // Add Product Form Handler
-  addForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const url = document.getElementById('productUrl').value;
-    const targetPrice = document.getElementById('targetPrice').value;
-
-    addBtnSpinner.classList.remove('hidden');
-    addBtnText.textContent = 'Scraping Page...';
-    btnAddSubmit.disabled = true;
-
-    try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, target_price: targetPrice })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        showToast('Product added successfully!', 'success');
-        addForm.reset();
-        fetchProducts();
-      } else {
-        showToast(data.error || 'Failed to add product', 'error');
-      }
-    } catch (err) {
-      showToast('Network error while adding product', 'error');
-    } finally {
-      addBtnSpinner.classList.add('hidden');
-      addBtnText.textContent = 'Start Tracking';
-      btnAddSubmit.disabled = false;
-    }
   });
 
-  // Re-check Single Product
-  async function checkSingleProduct(id, btnElement) {
-    const origText = btnElement.textContent;
-    btnElement.textContent = '⏳ Checking...';
-    btnElement.disabled = true;
-
-    try {
-      const res = await fetch(`/api/products/${id}/check`, { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        showToast(`Updated price: ₹${data.product.current_price}`, 'success');
-        fetchProducts();
-      } else {
-        showToast(data.error || 'Check failed', 'error');
-      }
-    } catch (err) {
-      showToast('Error re-checking price', 'error');
-    } finally {
-      btnElement.textContent = origText;
-      btnElement.disabled = false;
-    }
+  // Open Confirm Delete Modal
+  function openDeleteModal(id) {
+    activeDeleteProductId = id;
+    const prod = productsData.find(p => p.id == id);
+    deleteProductPreview.textContent = prod ? prod.title : 'Selected Product';
+    confirmDeleteModal.classList.add('active');
   }
 
-  // Delete Product
-  async function deleteProduct(id) {
-    if (!confirm('Are you sure you want to stop tracking this product?')) return;
+  function closeDeleteModal() {
+    confirmDeleteModal.classList.remove('active');
+    activeDeleteProductId = null;
+  }
+
+  btnCloseDeleteModal.addEventListener('click', closeDeleteModal);
+  btnCancelDelete.addEventListener('click', closeDeleteModal);
+
+  btnConfirmDelete.addEventListener('click', async () => {
+    if (!activeDeleteProductId) return;
     try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${activeDeleteProductId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         showToast('Product removed', 'success');
+        closeDeleteModal();
         fetchProducts();
       }
     } catch (err) {
       showToast('Failed to delete product', 'error');
     }
-  }
+  });
 
   // Re-check All Products
   btnCheckAll.addEventListener('click', async () => {

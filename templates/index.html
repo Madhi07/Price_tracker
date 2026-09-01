@@ -186,6 +186,47 @@
     </div>
   </div>
 
+  <!-- Edit Target Modal -->
+  <div id="editTargetModal" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3>✏️ Edit Target Price</h3>
+        <button class="close-btn" id="btnCloseEditTarget">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="editTargetProductTitle" class="modal-product-title"></p>
+        <form id="editTargetForm">
+          <div class="form-group">
+            <label for="inputNewTarget">New Target Price (₹)</label>
+            <input type="number" id="inputNewTarget" step="0.01" placeholder="e.g. 1499" required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="btnCancelEditTarget">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Target Price</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div id="confirmDeleteModal" class="modal">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h3 class="danger-title">⚠️ Remove Product</h3>
+        <button class="close-btn" id="btnCloseDeleteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-product-title">Are you sure you want to stop tracking this item?</p>
+        <div id="deleteProductPreview" class="delete-preview-box"></div>
+        <div class="modal-actions margin-top-20">
+          <button type="button" class="btn btn-secondary" id="btnCancelDelete">Cancel</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">Remove Product</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
