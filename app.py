@@ -76,8 +76,9 @@ def index():
     try:
         database.init_db()
         return render_template('index.html')
-    except Exception as e:
-        return f"<h3>Application Initializing...</h3><p>{str(e)}</p>", 500
+    except Exception:
+        import traceback
+        return f"<pre style='color:#ef4444;background:#0f172a;padding:20px;'>{traceback.format_exc()}</pre>", 200
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
